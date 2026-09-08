@@ -1,0 +1,33 @@
+{
+  "title": "My Food Bag",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sign in to My Food Bag",
+        "description": "Enter your My Food Bag email and password.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in to My Food Bag",
+        "description": "Enter your My Food Bag email and password.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Login failed. Check your email and password.",
+      "cannot_connect": "Unable to connect. Try again later.",
+      "invalid_response": "My Food Bag returned an unexpected response."
+    },
+    "abort": {
+      "already_configured": "This account is already configured.",
+      "reauth_successful": "Authentication updated.",
+      "unique_id_mismatch": "Sign in with the original My Food Bag account."
+    }
+  }
+}

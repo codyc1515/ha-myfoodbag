@@ -1,0 +1,10 @@
+{
+  "domain": "myfoodbag",
+  "name": "My Food Bag",
+  "codeowners": ["@codyc1515"],
+  "config_flow": true,
+  "documentation": "https://github.com/codyc1515/ha-myfoodbag",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/codyc1515/ha-myfoodbag/issues",
+  "version": "0.1.3"
+}
