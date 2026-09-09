@@ -100,3 +100,42 @@ async def test_setup_with_credentials():
         assert await module.async_setup_entry(hass, entry)
     client.assert_called_once_with('session', data['email'], data['password'])
     assert entry.data == data
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('delivery_day', ['2026-09-12', '2026-09-26'])
+async def test_all_day_meals_across_five_days(delivery_day):
+    from datetime import date
+    from homeassistant.util import dt as dt_util
+
+    d = normalize(
+        {'product': {'productName': 'Fresh Start for 4 people'}},
+        {'orderKey': 'meals', 'deliveryDate': {
+            'actualDeliveryDate': delivery_day,
+            'actualDeliveryStartTime': '07:00:00',
+            'actualDeliveryEndTime': '17:00:00'}},
+        {'primaryProductName': 'Fresh Start Choice (5 Nights For 4)'},
+        {'recipes': [{'recipeName': f'Meal {i}', 'timeStamp': i}
+                     for i in [5, 2, 1, 4, 3]]},
+    )
+    c = SimpleNamespace(data={'Fresh Start': [d]}, last_update_success=True)
+    entity = BagCalendar(c, SimpleNamespace(entry_id='test'), 'Fresh Start', 'calendar', None)
+    with patch.object(dt_util, 'DEFAULT_TIME_ZONE', NZ):
+        events = await entity.async_get_events(None, d.start - timedelta(days=1), d.end + timedelta(days=6))
+        meals = [event for event in events if event.all_day]
+        assert len(events) == 6
+        assert [event.summary for event in meals] == [f'Meal {i}' for i in range(1, 6)]
+        first = date.fromisoformat(delivery_day)
+        assert [event.start for event in meals] == [first + timedelta(days=i) for i in range(5)]
+        assert all(type(event.start) is date and event.end == event.start + timedelta(days=1)
+                   for event in meals)
+        # Queries after delivery still return meals, including across the DST change.
+        midday = d.start.replace(hour=12) + timedelta(days=2)
+        assert [e.summary for e in await entity.async_get_events(None, midday, midday + timedelta(hours=1))] == ['Meal 3']
+        with patch('mfb.calendar.dt_util.now', return_value=midday):
+            assert entity.event.summary == 'Meal 3'
+        final_end = meals[-1].end_datetime_local
+        assert await entity.async_get_events(None, final_end, final_end + timedelta(days=1)) == []
+        assert await entity.async_get_events(None, meals[0].start_datetime_local - timedelta(days=1), meals[0].start_datetime_local) == []
+        with patch('mfb.calendar.dt_util.now', return_value=final_end):
+            assert entity.event is None

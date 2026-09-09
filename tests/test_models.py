@@ -73,3 +73,23 @@ def test_no_invented_meal_count(data):
 def test_no_private_address_in_attributes(data):
     data[1]['deliveryAddress']={'street':'SECRET'}
     assert 'SECRET' not in str(normalize(*data).attributes())
+
+
+def test_meal_order_quantity_and_subscription_limit(data):
+    selection = {'recipes': [
+        {'recipeName': 'Third', 'timeStamp': 30},
+        {'recipeName': 'First', 'timeStamp': 10, 'quantity': 2},
+        {'recipeName': 'Fourth', 'timeStamp': 30},
+        {'recipeName': 'Undated'},
+        {'recipeName': 'Extra'},
+        {'recipeName': 'Unselected', 'timeStamp': 1, 'quantity': 0},
+    ]}
+    d = normalize(*data, selection=selection)
+    assert d.meal_names == ['First', 'First', 'Third', 'Fourth', 'Undated']
+    assert selection['recipes'][0]['recipeName'] == 'Third'
+
+
+def test_missing_recipe_preserves_day(data):
+    d = normalize(*data, selection={'recipes': [
+        {'timeStamp': 1}, {'recipeName': 'Second', 'timeStamp': 2}]})
+    assert d.meal_names == [None, 'Second']

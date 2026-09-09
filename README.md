@@ -19,7 +19,7 @@ Each bag type has its own calendar and delivery details, which you can add to yo
 | Feature | What it shows |
 |---|---|
 | Delivery calendar | When your bag arrives, with entries such as **5 meals for 4 people** |
-| Meals | Recipe names in each calendar entry, when available |
+| Meals | Individual all-day recipe entries, starting on delivery day, when available |
 | Delivery window | The scheduled start and end times |
 | Tracking | Your courier tracking number and link |
 | Price | The confirmed delivery total in NZD |
@@ -33,6 +33,8 @@ Each bag type has its own calendar and delivery details, which you can add to yo
 Your dashboard details show the next delivery, keeping today's delivery visible until midnight in New Zealand. The calendar shows all available deliveries, including those that are still being planned. Skipped and cancelled deliveries are hidden.
 
 Some details, such as prices, meals, and tracking, may only become available closer to delivery day. Home Assistant shows **Unknown** when information is missing. Future deliveries may change as My Food Bag confirms them.
+
+Meals are ordered by their selection timestamps and shown on consecutive days, with delivery day as day one. A Saturday delivery with five meals shows meals from Saturday through Wednesday, without a specific meal time. Repeated recipe quantities occupy consecutive days. Tied timestamps keep the API order; recipes without timestamps follow the dated recipes. The delivery window remains a separate timed entry.
 
 Delivery times follow New Zealand time, including daylight saving. Home Assistant may display them in your chosen local timezone.
 

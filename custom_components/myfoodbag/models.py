@@ -1,5 +1,5 @@
 """Normalize the account API without exposing addresses or payment details."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal
 import re
@@ -36,6 +36,7 @@ class Delivery:
     recipes: list
     deadline: datetime | None
     discount: Decimal | None
+    meal_names: list[str | None] = field(default_factory=list)
 
     def attributes(self):
         return {"delivery_date": self.start.date().isoformat(), "window_end": self.end.isoformat(),
@@ -78,6 +79,18 @@ def normalize(subscription, order, summary=None, selection=None, tracking=None):
     people_match = re.search(r"for\s+(\d+)\s+people", product_name, re.I)
     people = int(match[2]) if match else int(people_match[1]) if people_match else None
     meals = int(match[1]) if match else sum(r.get("quantity", 1) for r in recipes) or None
+    # Selection timestamps establish meal order, not the date to eat them.
+    # Keep API order for ties and place undated selections last.
+    def selection_time(recipe):
+        try:
+            return float(recipe.get("timeStamp") or float("inf"))
+        except (TypeError, ValueError):
+            return float("inf")
+
+    meal_names = [r.get("recipeName") for r in sorted(recipes, key=selection_time)
+                  for _ in range(max(0, r.get("quantity", 1)))]
+    if meals:
+        meal_names = meal_names[:meals]
     title = f"{meals} meals for {people} people" if meals and people else "Meal delivery" + (f" for {people} people" if people else "")
     virtual = bool(order.get("isVirtual"))
     raw_price = summary.get("total")
@@ -99,7 +112,7 @@ def normalize(subscription, order, summary=None, selection=None, tracking=None):
     return Delivery(str(order.get("orderKey") or order.get("deliveryId")), bag_name(subscription), start, end, title,
                     price, (order.get("orderStatus") or {}).get("badgeText"), summary.get("paid", order.get("isPaid")),
                     virtual, tracking or {}, promos, [r["recipeName"] for r in recipes if r.get("recipeName")],
-                    deadline, Decimal(str(discount)) if discount is not None else None)
+                    deadline, Decimal(str(discount)) if discount is not None else None, meal_names)
 
 
 def current(deliveries, now=None):
