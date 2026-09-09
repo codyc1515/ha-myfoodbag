@@ -23,10 +23,10 @@ Each bag type has its own calendar and delivery details, which you can add to yo
 | Delivery window | The scheduled start and end times |
 | Tracking | Your courier tracking number and link |
 | Price | The confirmed delivery total in NZD |
-| Status | Updates such as **Upcoming** or **Delivering soon** |
-| Payment | Whether the delivery has been paid for |
 | Meal changes deadline | When you need to finish choosing your meals |
-| Promotions | Free extras and any discount amount |
+| Promotions | Free extras |
+
+Tracking number, delivery price, and promotional items appear in the device's **Diagnostic** section.
 
 ## How deliveries are shown
 

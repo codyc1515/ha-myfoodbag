@@ -1,14 +1,13 @@
 """Current delivery facts."""
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.helpers.entity import EntityCategory
 from .entity import BagEntity, discover
 
 SENSORS = (
     ("tracking_number", "NZ Post tracking number", None, None),
     ("window_start", "Delivery window start", SensorDeviceClass.TIMESTAMP, None),
     ("price", "Delivery price", SensorDeviceClass.MONETARY, "NZD"),
-    ("status", "Delivery status", None, None),
     ("deadline", "Meal changes deadline", SensorDeviceClass.TIMESTAMP, None),
-    ("discount", "Promotion discount", SensorDeviceClass.MONETARY, "NZD"),
 )
 
 
@@ -20,6 +19,8 @@ class DeliverySensor(BagEntity, SensorEntity):
     def __init__(self, coordinator, entry, bag, key, name, device_class, unit):
         super().__init__(coordinator, entry, bag, key, name)
         self.key = key
+        if key in {"tracking_number", "price"}:
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = unit
         if unit:

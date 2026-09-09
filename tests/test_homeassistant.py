@@ -1,9 +1,10 @@
 """Exercise actual Home Assistant entity classes with synthetic account data."""
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, call, patch
 from datetime import datetime, timedelta
 import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from mfb.calendar import BagCalendar
 from mfb.sensor import DeliverySensor, SENSORS
 from mfb.binary_sensor import DeliveryBinary
@@ -34,12 +35,18 @@ def test_sensor_values():
     assert str(sensors['price'].native_value)=='123.49'
     assert sensors['price'].native_unit_of_measurement=='NZD'
     assert sensors['tracking_number'].native_value=='TEST123'
+    assert set(sensors) == {'tracking_number', 'window_start', 'price', 'deadline'}
+    for key in ('tracking_number', 'price'):
+        assert sensors[key].entity_category == EntityCategory.DIAGNOSTIC
+    for key in ('window_start', 'deadline'):
+        assert sensors[key].entity_category is None
     assert sensors['window_start'].native_value.hour==7
     assert sensors['window_start'].extra_state_attributes['window_end']==d.end.isoformat()
 
 def test_binary_values_clear_when_no_delivery():
     c,e,d=setup_data();b=DeliveryBinary(c,e,'Fresh Start','promo_items','Promotional items')
     assert b.is_on is True
+    assert b.entity_category == EntityCategory.DIAGNOSTIC
     c.data={}
     assert b.is_on is None
 
@@ -90,16 +97,30 @@ async def test_setup_with_credentials():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     data = {'email': 'test@example.invalid', 'password': 'dummy'}
-    entry = SimpleNamespace(data=data)
+    entry = SimpleNamespace(data=data, entry_id='test')
     manager = SimpleNamespace(async_forward_entry_setups=AsyncMock())
     hass = SimpleNamespace(config_entries=manager)
     coordinator = SimpleNamespace(async_config_entry_first_refresh=AsyncMock())
+    registry = Mock()
+    entities = [SimpleNamespace(domain=domain, platform='myfoodbag',
+                                unique_id=f'test_bag_{key}', entity_id=f'{domain}.{key}')
+                for domain, key in [('sensor', 'status'), ('sensor', 'discount'),
+                                    ('binary_sensor', 'paid'), ('sensor', 'price'),
+                                    ('sensor', 'tracking_number'), ('binary_sensor', 'promo_items')]]
+    entities.append(SimpleNamespace(domain='sensor', platform='other',
+                                    unique_id='test_bag_status', entity_id='sensor.other_status'))
     with patch.object(module, 'async_get_clientsession', return_value='session'), \
          patch.object(module, 'Client') as client, \
-         patch.object(module, 'Coordinator', return_value=coordinator):
+         patch.object(module, 'Coordinator', return_value=coordinator), \
+         patch.object(module.er, 'async_get', return_value=registry), \
+         patch.object(module.er, 'async_entries_for_config_entry', return_value=entities) as entries:
         assert await module.async_setup_entry(hass, entry)
     client.assert_called_once_with('session', data['email'], data['password'])
     assert entry.data == data
+    entries.assert_called_once_with(registry, entry.entry_id)
+    assert registry.async_remove.call_args_list == [
+        call('sensor.status'), call('sensor.discount'), call('binary_sensor.paid')]
+
 
 
 @pytest.mark.asyncio
