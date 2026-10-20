@@ -97,10 +97,12 @@ async def test_setup_with_credentials():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     data = {'email': 'test@example.invalid', 'password': 'dummy'}
-    entry = SimpleNamespace(data=data, entry_id='test')
+    entry = SimpleNamespace(data=data, entry_id='test', async_on_unload=Mock(),
+                            async_create_background_task=Mock())
     manager = SimpleNamespace(async_forward_entry_setups=AsyncMock())
     hass = SimpleNamespace(config_entries=manager)
-    coordinator = SimpleNamespace(async_config_entry_first_refresh=AsyncMock())
+    coordinator = SimpleNamespace(async_config_entry_first_refresh=AsyncMock(),
+                                  async_refresh=AsyncMock())
     registry = Mock()
     entities = [SimpleNamespace(domain=domain, platform='myfoodbag',
                                 unique_id=f'test_bag_{key}', entity_id=f'{domain}.{key}')
@@ -112,10 +114,15 @@ async def test_setup_with_credentials():
     with patch.object(module, 'async_get_clientsession', return_value='session'), \
          patch.object(module, 'Client') as client, \
          patch.object(module, 'Coordinator', return_value=coordinator), \
+         patch.object(module, 'async_at_started', return_value=Mock()) as at_started, \
          patch.object(module.er, 'async_get', return_value=registry), \
          patch.object(module.er, 'async_entries_for_config_entry', return_value=entities) as entries:
         assert await module.async_setup_entry(hass, entry)
     client.assert_called_once_with('session', data['email'], data['password'])
+    coordinator.async_config_entry_first_refresh.assert_not_awaited()
+    coordinator.async_refresh.assert_not_called()
+    at_started.assert_called_once()
+    entry.async_on_unload.assert_called_once_with(at_started.return_value)
     assert entry.data == data
     entries.assert_called_once_with(registry, entry.entry_id)
     assert registry.async_remove.call_args_list == [

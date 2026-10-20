@@ -2,6 +2,8 @@
 
 See your upcoming My Food Bag deliveries, meals, and tracking details in Home Assistant. Information refreshes every 30 minutes.
 
+The first refresh runs in the background after Home Assistant starts. Calendars and delivery details appear when it finishes, without delaying startup.
+
 This is an unofficial integration. It lets you view your deliveries; use My Food Bag to change meals or manage orders.
 
 ## Installation

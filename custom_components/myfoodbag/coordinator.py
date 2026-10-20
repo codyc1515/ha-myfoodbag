@@ -17,6 +17,8 @@ class Coordinator(DataUpdateCoordinator):
         super().__init__(hass, _LOGGER, name="My Food Bag", config_entry=entry,
                          update_interval=timedelta(minutes=30))
         self.client = client
+        # Platforms register discovery listeners before the first background refresh.
+        self.data = {}
 
     async def _async_update_data(self):
         try:
